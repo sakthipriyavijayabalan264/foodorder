@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Food Order Management</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .login-box { border:1px solid #ccc; padding:20px; width:300px; margin-bottom:20px; }
+        .menu { display:none; gap:20px; }
+        .card { border:1px solid #ccc; padding:10px; text-align:center; width:180px; }
+        .card img { width:140px; height:140px; }
+        .card button { background:#28a745; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; }
+        #message { font-weight:bold; color:green; margin-top:15px; }
+        #loginMessage { font-weight:bold; margin-top:10px; }
+        table { border-collapse: collapse; width: 70%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h2>🍔 Food Order Management System</h2>
+
+    <!-- Login -->
+    <div class="login-box" id="loginBox">
+        <h3>Login</h3>
+        <input type="text" id="email" placeholder="Email"><br><br>
+        <input type="password" id="password" placeholder="Password"><br><br>
+        <button onclick="login()">Login</button>
+        <p id="loginMessage"></p>
+    </div>
+
+    <!-- Menu -->
+<div class="menu" id="menuSection">
+    <div class="card">
+        <!-- Pizza image from external link -->
+        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/Eq_it-na_pizza-margherita_sep2005_sml.jpg" alt="Pizza">
+        <p>Pizza - ₹150</p>
+        <input type="number" id="pizzaQty" placeholder="Qty"><br><br>
+        <button onclick="placeOrder('Pizza', document.getElementById('pizzaQty').value)">Order Pizza</button>
+    </div>
+    <div class="card">
+        <!-- Burger image from external link -->
+        <img src="https://upload.wikimedia.org/wikipedia/commons/0/0b/RedDot_Burger.jpg" alt="Burger">
+        <p>Burger - ₹100</p>
+        <input type="number" id="burgerQty" placeholder="Qty"><br><br>
+        <button onclick="placeOrder('Burger', document.getElementById('burgerQty').value)">Order Burger</button>
+    </div>
+    <div class="card">
+        <!-- Coffee image from external link -->
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/A_small_cup_of_coffee.JPG" alt="Coffee">
+        <p>Coffee - ₹50</p>
+        <input type="number" id="coffeeQty" placeholder="Qty"><br><br>
+        <button onclick="placeOrder('Coffee', document.getElementById('coffeeQty').value)">Order Coffee</button>
+    </div>
+</div>
+
+ 
+
+    <p id="message"></p>
+
+    <!-- Orders Table -->
+    <h3>📋 Current Orders</h3>
+    <table id="ordersTable">
+        <thead>
+            <tr><th>ID</th><th>Item</th><th>Quantity</th><th>Total</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        const API = "http://127.0.0.1:5000";
+
+        async function login() {
+            const formData = new FormData();
+            formData.append("email", document.getElementById("email").value);
+            formData.append("password", document.getElementById("password").value);
+
+            const res = await fetch(API + "/login", { method:"POST", body:formData });
+            const data = await res.json();
+            document.getElementById("loginMessage").innerText = data.message;
+
+            if(data.status === "success") {
+                document.getElementById("loginBox").style.display = "none";
+                document.getElementById("menuSection").style.display = "flex";
+                loadOrders();
+            }
+        }
+
+        async function loadOrders() {
+            const res = await fetch(API + "/orders");
+            const data = await res.json();
+            const tbody = document.querySelector("#ordersTable tbody");
+            tbody.innerHTML = "";
+            data.forEach(order => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${order.id}</td>
+                        <td>${order.item}</td>
+                        <td>${order.quantity}</td>
+                        <td>${order.total}</td>
+                        <td>
+                            <button onclick="updateOrder(${order.id})">Update</button>
+                            <button onclick="deleteOrder(${order.id})">Delete</button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        async function placeOrder(item, qty) {
+            if (!qty || qty <= 0) { alert("Enter valid quantity!"); return; }
+            const formData = new FormData();
+            formData.append("item", item);
+            formData.append("quantity", qty);
+            await fetch(API + "/order", { method:"POST", body:formData });
+            document.getElementById("message").innerText = "✅ Ordered Successfully!";
+            loadOrders();
+        }
+
+        async function updateOrder(id) {
+            const qty = prompt("Enter new quantity:");
+            if (!qty) return;
+            const formData = new FormData();
+            formData.append("quantity", qty);
+            const res = await fetch(API + "/update/" + id, { method:"POST", body:formData });
+            alert(await res.text());
+            loadOrders();
+        }
+
+        async function deleteOrder(id) {
+            const res = await fetch(API + "/delete/" + id, { method:"POST" });
+            alert(await res.text());
+            loadOrders();
+        }
+    </script>
+</body>
+</html>
